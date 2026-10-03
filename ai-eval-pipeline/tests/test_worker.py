@@ -4,9 +4,16 @@ from evaluator.tasks import process_chunk_task
 REQUEST_ID = "req_001"
 
 chunk = [
-    {"id": "1", "question": "What is 2 + 2?", "answer": "4", "expected": "4"},
-    {"id": "2", "question": "What is the capital of France?", "answer": "Paris", "expected": "Paris"},
-    {"id": "3", "question": "What is 10 / 2?", "answer": "6", "expected": "5"},
+{"id": "1", "question": "What is 2 + 2?", "answer": "4", "expected": "4"},
+{"id": "2", "question": "What is the capital of France?", "answer": "Paris", "expected": "Paris"},
+{"id": "3", "question": "What is 10 / 2?", "answer": "6", "expected": "5"},
+{"id": "4", "question": "Who wrote Hamlet?", "answer": "William Shakespeare", "expected": "William Shakespeare"},
+{"id": "5", "question": "What is 5 * 5?", "answer": "20", "expected": "25"},
+{"id": "6", "question": "What is the largest planet?", "answer": "Jupiter", "expected": "Jupiter"},
+{"id": "7", "question": "What is 9 - 3?", "answer": "6", "expected": "6"},
+{"id": "8", "question": "What is the boiling point of water?", "answer": "100°C", "expected": "100°C"},
+{"id": "9", "question": "What is 3 * 3?", "answer": "9", "expected": "9"},
+{"id": "10", "question": "What is the capital of Japan?", "answer": "Tokyo", "expected": "Tokyo"},
 ]
 
 result = process_chunk_task.delay(
