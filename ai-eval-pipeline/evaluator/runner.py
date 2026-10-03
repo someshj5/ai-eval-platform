@@ -8,33 +8,28 @@ from evaluator.reader import read_jsonl
 
 MAX_CONCURRENCY = 5
 CHUNK_SIZE = 3
-REQUEST_ID = "req_001"
+import asyncio
 
-async def evaluate_with_limit(
-    record: dict,
-    semaphore: asyncio.Semaphore,
-    checkpoint: CheckpointStore,
-):
+from evaluator.evaluator import evaluate_record
+
+
+MAX_CONCURRENCY = 5
+
+
+async def evaluate_with_limit(record, semaphore, checkpoint, request_id):
     record_id = record["id"]
 
-    status = checkpoint.get_status(
-        REQUEST_ID,
-        record_id,
-    )
+    status = checkpoint.get_status(request_id, record_id)
 
-    # Completed records are never evaluated again.
     if status == "completed":
-        print(
-            f"SKIP  {record_id} "
-            f"(already completed)"
-        )
+        print(f"SKIP  {record_id} (already completed)")
         return None
 
     async with semaphore:
         print(f"START {record_id}")
 
         checkpoint.mark_processing(
-            REQUEST_ID,
+            request_id,
             record_id,
         )
 
@@ -42,7 +37,7 @@ async def evaluate_with_limit(
             result = await evaluate_record(record)
 
             checkpoint.mark_completed(
-                REQUEST_ID,
+                request_id,
                 record_id,
                 result["score"],
                 result["reason"],
@@ -54,68 +49,30 @@ async def evaluate_with_limit(
 
         except Exception as exc:
             checkpoint.mark_failed(
-                REQUEST_ID,
+                request_id,
                 record_id,
                 str(exc),
             )
 
-            print(
-                f"FAILED {record_id}: {exc}"
-            )
+            print(f"FAILED {record_id}: {exc}")
 
             raise
 
-# async def evaluate_with_limit(
-#     record: dict,
-#     semaphore: asyncio.Semaphore,
-#     checkpoint: CheckpointStore,
-# ):
-#     record_id = record["id"]
 
-#     if checkpoint.is_completed(
-#         REQUEST_ID,
-#         record_id,
-#     ):
-#         print(f"SKIP  {record_id} (already completed)")
-#         return None
-
-#     async with semaphore:
-#         print(f"START {record_id}")
-
-#         result = await evaluate_record(record)
-
-#         checkpoint.save_result(
-#             REQUEST_ID,
-#             record_id,
-#             result,
-#         )
-
-#         print(f"DONE  {record_id}")
-
-#         return result
-
-
-async def process_chunk(
-    chunk: list[dict],
-    semaphore: asyncio.Semaphore,
-    checkpoint: CheckpointStore,
-):
-    print(
-        f"\nPROCESSING CHUNK: "
-        f"{[record['id'] for record in chunk]}"
-    )
+async def process_chunk(chunk, request_id, checkpoint):
+    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
     tasks = [
         evaluate_with_limit(
             record,
             semaphore,
             checkpoint,
+            request_id,
         )
         for record in chunk
     ]
 
     return await asyncio.gather(*tasks)
-
 
 async def run():
     records = list(
